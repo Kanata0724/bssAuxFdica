@@ -175,8 +175,19 @@ def local_auxFdica(
             for f in range(nFreq):
                 Xf = X[f].mT  # channel,frame
                 Vn = (Xf * invRadius[f, :, n][None, :]) @ Xf.mH / nFrame
-                wn = torch.linalg.solve(W[f] @ Vn, eye[:, n])
-                norm = torch.sqrt(torch.real(wn.conj() @ Vn @ wn).clamp_min(threshold))
+                # Very quiet or highly correlated frequency bins can make Vn
+                # numerically singular even when the time-domain input is valid.
+                meanPower = torch.real(torch.trace(Vn)) / nCh
+                ridge = 100 * torch.finfo(X.real.dtype).eps * meanPower.clamp_min(1.0)
+                VnReg = Vn + ridge * eye
+                system = W[f] @ VnReg
+                try:
+                    wn = torch.linalg.solve(system, eye[:, n])
+                except RuntimeError as exc:
+                    if "singular" not in str(exc).lower():
+                        raise
+                    wn = torch.linalg.pinv(system) @ eye[:, n]
+                norm = torch.sqrt(torch.real(wn.conj() @ VnReg @ wn).clamp_min(threshold))
                 wn = wn / norm
                 W[f, n] = wn.conj()
                 Y[f, :, n] = X[f] @ wn.conj()

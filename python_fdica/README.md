@@ -6,6 +6,7 @@
 
 - Python 3.10以上（3.12で検証）
 - PyTorch 2.1以上
+- torchaudio 2.1以上
 - matplotlib 3.7以上（`isDraw=True` の描画に使用）
 
 リポジトリのルートで次を実行します。
@@ -48,7 +49,7 @@ estSig, cost = bssAuxFdica(
 
 CPU/GPUは入力テンソルのdeviceで選択します。たとえば `obsSig = obsSig.to("cuda")` とすれば、生成される内部テンソルも同じGPUに置かれます。
 
-最小例（生成テンソル、任意の16-bit PCM WAV入出力）は次のとおりです。
+最小例（生成テンソル、torchaudio対応音声ファイルの入力、16-bit PCM WAV出力）は次のとおりです。
 
 ```bash
 python -m python_fdica.example --model LAP --device cpu

@@ -6,32 +6,30 @@ import argparse
 import wave
 from pathlib import Path
 
+import torchaudio
 import torch
 
 from .bssAuxFdica import bssAuxFdica
 
 
-def read_pcm16_wav(path: str | Path, device: str = "cpu") -> tuple[torch.Tensor, int]:
-    """Read a 16-bit PCM WAV as a ``(sample, channel)`` float64 tensor."""
-    with wave.open(str(path), "rb") as wav:
-        if wav.getsampwidth() != 2:
-            raise ValueError("the standard-library example supports 16-bit PCM WAV only")
-        sampleRate = wav.getframerate()
-        nChannel = wav.getnchannels()
-        raw = wav.readframes(wav.getnframes())
-    values = torch.frombuffer(bytearray(raw), dtype=torch.int16).reshape(-1, nChannel)
-    return values.to(device=device, dtype=torch.float64) / 32768.0, sampleRate
+def read_audio(path: str | Path, device: str = "cpu") -> tuple[torch.Tensor, int]:
+    """Read an audio file with torchaudio as a ``(sample, channel)`` tensor."""
+    values, sampleRate = torchaudio.load(str(path))
+    return values.transpose(0, 1).to(device=device, dtype=torch.float64), sampleRate
 
 
 def write_pcm16_wav(path: str | Path, signal: torch.Tensor, sampleRate: int) -> None:
-    """Save ``(sample, channel)`` floating-point audio as 16-bit PCM WAV."""
+    """Save ``(sample, channel)`` floating-point audio as a 16-bit PCM WAV."""
     signal16 = (signal.detach().cpu().clamp(-1, 1) * 32767).round().to(torch.int16).contiguous()
     with wave.open(str(path), "wb") as wav:
         wav.setnchannels(signal16.shape[1])
         wav.setsampwidth(2)
         wav.setframerate(sampleRate)
-        # Avoid a NumPy dependency: reinterpret contiguous int16 storage as bytes.
         wav.writeframes(bytes(signal16.view(torch.uint8).flatten().tolist()))
+
+
+# Backward-compatible names used by main.py and existing callers.
+read_pcm16_wav = read_audio
 
 
 def make_example_mixture(sampleRate: int = 8000, seconds: float = 0.5) -> torch.Tensor:
@@ -45,13 +43,13 @@ def make_example_mixture(sampleRate: int = 8000, seconds: float = 0.5) -> torch.
 def main() -> None:
     """Load/create a mixture, run selected FDICA, and optionally save output."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", type=Path, help="optional 16-bit PCM multichannel WAV")
+    parser.add_argument("--input", type=Path, help="optional audio input supported by torchaudio")
     parser.add_argument("--output", type=Path, help="optional separated 16-bit PCM WAV")
     parser.add_argument("--model", choices=("LAP", "TVG"), default="LAP")
     parser.add_argument("--device", default="cpu", help='for example "cpu" or "cuda"')
     args = parser.parse_args()
     if args.input:
-        obsSig, sampleRate = read_pcm16_wav(args.input, args.device)
+        obsSig, sampleRate = read_audio(args.input, args.device)
     else:
         sampleRate = 8000
         obsSig = make_example_mixture(sampleRate).to(args.device)
