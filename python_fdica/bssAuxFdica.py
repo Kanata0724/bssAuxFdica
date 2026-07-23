@@ -37,6 +37,121 @@ def local_calcFdicaCost(Y: torch.Tensor, W: torch.Tensor, srcModel: str) -> torc
     return torch.log((torch.abs(Y) ** 2).clamp_min(torch.finfo(Y.real.dtype).eps)).sum() - 2 * nFrame * logdet
 
 
+def local_plotSpectrogram(
+    signal: torch.Tensor,
+    sampFreq: float,
+    fftSize: int,
+    shiftSize: int,
+    *,
+    title: str,
+    dynamicRange: float = 80.0,
+    trunc: float = 0.0,
+    normalize: bool = True,
+) -> None:
+    """Draw DGTtool-like spectrogram, spectrum, and waveform figures."""
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError as exc:
+        raise ImportError("isDraw=True requires matplotlib. Install it with `pip install matplotlib`.") from exc
+
+    if signal.ndim != 2:
+        raise ValueError("signal must be shaped (sample, channel/source)")
+    x = signal.detach().cpu()
+    nSample, nSignal = x.shape
+    window = torch.blackman_window(fftSize, periodic=True, dtype=x.dtype)
+    normConst = torch.sum(window).item() / 2 if normalize else 1.0
+    spec = dgt_stft(x, fftSize, shiftSize).detach().cpu() / normConst
+    xForFft = x / normConst
+    eps = torch.finfo(spec.real.dtype).eps
+
+    if sampFreq == 1:
+        fsPlot = 1.0
+        freqUnit = "[periods/sample]"
+        timeUnit = "[samples]"
+        time = torch.arange(spec.shape[1], dtype=x.real.dtype) * shiftSize
+        waveTime = torch.arange(nSample, dtype=x.real.dtype)
+        xLimit = (0, max(nSample - 1, 1))
+    else:
+        fsPlot = sampFreq / 1000
+        freqUnit = "[kHz]"
+        timeUnit = "[s]"
+        time = torch.arange(spec.shape[1], dtype=x.real.dtype) * shiftSize / sampFreq
+        waveTime = torch.arange(nSample, dtype=x.real.dtype) / sampFreq
+        xLimit = (0, max((nSample - 1) / sampFreq, 1 / sampFreq))
+    freq = torch.linspace(0, fsPlot / 2, spec.shape[0], dtype=x.real.dtype)
+
+    for index in range(nSignal):
+        spectrum = 20 * torch.log10(torch.abs(torch.fft.rfft(xForFft[:, index])).clamp_min(eps))
+        specDb = 20 * torch.log10(torch.abs(spec[:, :, index]).clamp_min(eps))
+        vmax = float(specDb.max().item()) - trunc
+        vmin = vmax - dynamicRange
+
+        fig = plt.figure()
+        fig.suptitle(f"{title} {index + 1}")
+        grid = fig.add_gridspec(10, 14, wspace=0.0, hspace=0.0)
+        axSpectrum = fig.add_subplot(grid[:8, :2])
+        axSpec = fig.add_subplot(grid[:8, 2:])
+        axWave = fig.add_subplot(grid[8:, 2:])
+        axColor = fig.add_subplot(grid[8:, :1])
+
+        specFreq = torch.linspace(0, fsPlot / 2, spectrum.numel(), dtype=x.real.dtype)
+        axSpectrum.plot(spectrum.numpy(), specFreq.numpy())
+        axSpectrum.set_xlim(float(spectrum.max().item()) - dynamicRange - trunc, float(spectrum.max().item()) - trunc)
+        axSpectrum.set_ylim(0, fsPlot / 2)
+        axSpectrum.invert_xaxis()
+        axSpectrum.set_ylabel(f"Frequency {freqUnit}", fontsize=12)
+        axSpectrum.tick_params(labelsize=10)
+
+        image = axSpec.imshow(
+            specDb.numpy(),
+            origin="lower",
+            aspect="auto",
+            extent=(float(time[0]), float(time[-1]) if time.numel() else 0, 0, fsPlot / 2),
+            vmin=vmin,
+            vmax=vmax,
+        )
+        axSpec.set_xlim(*xLimit)
+        axSpec.set_ylim(0, fsPlot / 2)
+        axSpec.axis("off")
+
+        axWave.plot(waveTime.numpy(), x[:, index].numpy())
+        axWave.set_xlim(*xLimit)
+        axWave.set_xlabel(f"Time {timeUnit}", fontsize=12)
+        axWave.set_yticks([0])
+        axWave.axhline(0, color="0.3", linewidth=0.8)
+        axWave.tick_params(labelsize=10)
+
+        fig.colorbar(image, cax=axColor)
+        axColor.set_ylabel("Power [dB]", fontsize=11)
+        axColor.tick_params(axis="x", bottom=False, labelbottom=False)
+
+
+def local_plotCost(cost: torch.Tensor, nIter: int) -> None:
+    """Draw FDICA objective values with MATLAB-compatible axes."""
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError as exc:
+        raise ImportError("isDraw=True requires matplotlib. Install it with `pip install matplotlib`.") from exc
+
+    costCpu = cost.detach().cpu()
+    fig, ax = plt.subplots()
+    ax.plot(range(nIter + 1), costCpu[: nIter + 1].numpy())
+    ax.set_xlabel("Number of iterations")
+    ax.set_ylabel("Value of cost function")
+    ax.grid(True)
+    ax.tick_params(labelsize=12)
+
+
+def local_showPlots() -> None:
+    """Show matplotlib figures until the user closes them."""
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError as exc:
+        raise ImportError("isDraw=True requires matplotlib. Install it with `pip install matplotlib`.") from exc
+
+    plt.show(block=True)
+
+
 def local_auxFdica(
     X: torch.Tensor,
     nIter: int,
@@ -189,4 +304,13 @@ def bssAuxFdica(
         estSig = _time_domain_filter(obsSigInput, demixFixed, fftSize)[:sigLen]
     else:
         estSig = dgt_istft(estSpec, fftSize, shiftSize, length=sigLen)
+    if isDraw:
+        local_plotSpectrogram(obsSig, sampFreq, fftSize, shiftSize, title="Observed signal")
+        local_plotSpectrogram(dgt_istft(obsSpecInput, fftSize, shiftSize, length=sigLen), sampFreq, fftSize, shiftSize, title="FDICA input signal")
+        local_plotSpectrogram(dgt_istft(estSpecFdica, fftSize, shiftSize, length=sigLen), sampFreq, fftSize, shiftSize, title="Estimated signal before projection back")
+        if permSolver != "none":
+            local_plotSpectrogram(dgt_istft(fixed, fftSize, shiftSize, length=sigLen), sampFreq, fftSize, shiftSize, title="Estimated signal before permutation solver")
+        local_plotSpectrogram(estSig, sampFreq, fftSize, shiftSize, title="Estimated signal")
+        local_plotCost(cost, nIter)
+        local_showPlots()
     return estSig, cost

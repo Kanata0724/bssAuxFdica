@@ -66,6 +66,7 @@ def main() -> None:
         refMic=1,
         sampFreq=sampleRate,
         seed=1,
+        isDraw=True
     )
     print(f"input={tuple(obsSig.shape)}, separated={tuple(estSig.shape)}, model={args.model}")
     if args.output:

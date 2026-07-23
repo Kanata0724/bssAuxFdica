@@ -1,3 +1,5 @@
+import importlib
+
 import pytest
 import torch
 
@@ -36,6 +38,44 @@ def test_time_domain_demixing_filter_runs() -> None:
     )
     assert y.shape == _mixture().shape
     assert torch.isfinite(y).all()
+
+
+def test_is_draw_calculates_cost_and_requests_plots(monkeypatch: pytest.MonkeyPatch) -> None:
+    fdica_module = importlib.import_module("python_fdica.bssAuxFdica")
+    spectrogramTitles = []
+    costCalls = []
+    showCalls = []
+
+    def fake_plot_spectrogram(signal: torch.Tensor, sampFreq: float, fftSize: int, shiftSize: int, *, title: str) -> None:
+        assert signal.ndim == 2
+        assert sampFreq == 8000
+        assert fftSize == 32
+        assert shiftSize == 16
+        spectrogramTitles.append(title)
+
+    def fake_plot_cost(cost: torch.Tensor, nIter: int) -> None:
+        costCalls.append((cost.shape, nIter))
+
+    monkeypatch.setattr(fdica_module, "local_plotSpectrogram", fake_plot_spectrogram)
+    monkeypatch.setattr(fdica_module, "local_plotCost", fake_plot_cost)
+    monkeypatch.setattr(fdica_module, "local_showPlots", lambda: showCalls.append(True))
+
+    y, cost = bssAuxFdica(
+        _mixture(), 2, fftSize=32, shiftSize=16, nIter=2, isWhiten=False,
+        srcModel="LAP", permSolver="none", isDraw=True, sampFreq=8000,
+    )
+
+    assert y.shape == _mixture().shape
+    assert cost.shape == (3,)
+    assert torch.isfinite(cost).all()
+    assert spectrogramTitles == [
+        "Observed signal",
+        "FDICA input signal",
+        "Estimated signal before projection back",
+        "Estimated signal",
+    ]
+    assert costCalls == [((3,), 2)]
+    assert showCalls == [True]
 
 
 @pytest.mark.parametrize(
