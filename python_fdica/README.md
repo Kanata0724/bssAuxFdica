@@ -44,8 +44,11 @@ estSig, cost = bssAuxFdica(
     permSolver="COR",
     refMic=1,             # MATLABと同じ1始まり
     seed=1,
+    verbose=True,         # 処理段階と反復進捗をターミナルへ即時表示
 )
 ```
+
+`verbose=True` では、STFT、白色化、学習（反復最適化）の各回、projection back、置換問題、逆STFT、描画、完了までの状態を表示します。`python -m python_fdica.main` では常に有効です。
 
 CPU/GPUは入力テンソルのdeviceで選択します。たとえば `obsSig = obsSig.to("cuda")` とすれば、生成される内部テンソルも同じGPUに置かれます。
 
