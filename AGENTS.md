@@ -23,6 +23,8 @@ This repository is used for research on blind source separation and AuxFDICA-rel
   - next action
 
 ## Git
+- Work on the `codex-work` branch unless explicitly instructed otherwise.
+- Do not push directly to `main`.
 - Do not push to GitHub unless explicitly instructed.
 - Do not force-push.
 - Do not rewrite Git history.
