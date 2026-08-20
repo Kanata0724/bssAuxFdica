@@ -15,6 +15,7 @@ AuxFDICAを用いた音源分離実験を行い、既存手法との性能差や
 - Research PC and home PC synchronization confirmed
 - Codex desktop operation confirmed
 - Codex workflow test completed
+- Remote access from smartphone verified
 - Git workflow currently uses `main`
 - Automatic commit/push is not enabled yet
 
