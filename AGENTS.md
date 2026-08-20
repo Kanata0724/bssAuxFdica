@@ -1,36 +1,240 @@
 # AGENTS.md
 
-## Project purpose
-This repository is used for research on blind source separation and AuxFDICA-related experiments.
+## プロジェクトの目的
 
-## Working rules
-- Before starting work, read `PROGRESS.md` and understand the current research status.
-- Do not modify files unrelated to the requested task.
-- Do not delete existing experimental code or results without explicit permission.
-- Prefer small, reviewable changes.
-- Explain significant changes before or after making them.
+このリポジトリは、ブラインド音源分離および AuxFDICA に関連する研究・実験のために使用する。
 
-## Experiments
-- Experimental outputs should be saved under `output/`.
-- Do not add files under `output/` to Git.
-- Record important experimental conditions and results in `PROGRESS.md`.
-- When possible, record:
-  - purpose of the experiment
-  - changed parameters
-  - executed script or command
-  - important numerical results
-  - interpretation
-  - next action
+このリポジトリは GitHub を介して研究用PCと自宅PCの間で共有する。また、Codexをスマートフォンからリモート操作する場合がある。
 
-## Git
-- Work on the `codex-work` branch unless explicitly instructed otherwise.
-- Do not push directly to `main`.
-- Do not push to GitHub unless explicitly instructed.
-- Do not force-push.
-- Do not rewrite Git history.
-- Before committing, check `git status` and confirm that no large or unintended files are included.
-- Never commit secrets, credentials, API keys, or private data.
+本リポジトリでは、以下を重視する。
 
-## Safety
-- Do not modify or overwrite datasets unless explicitly instructed.
-- Ask before performing destructive operations.
+* 研究および実験の再現性を保つ
+* リポジトリを安全かつ確認しやすい状態に保つ
+* 別のPCや新しいCodexセッションからでも容易に作業を再開できるようにする
+
+## 作業開始前
+
+ファイルを変更する前に、必ず以下を行うこと。
+
+1. `PROGRESS.md` を読み、現在の研究状況を把握する
+2. 現在のGitブランチを確認する
+3. `git status` で作業ツリーの状態を確認する
+4. ユーザーから依頼された作業内容を理解する
+
+明示的な指示がない限り、`codex-work` ブランチで作業すること。
+
+現在のブランチが `main` の場合、通常の研究コードの変更を開始しないこと。必要に応じてユーザーに知らせるか、適切な場合のみ `codex-work` に切り替えること。
+
+## 基本的な作業ルール
+
+* 依頼された作業と関係のないファイルを変更しない
+* 変更は可能な限り小さく、後から確認しやすい単位にする
+* 依頼内容上必要でない限り、既存の動作を維持する
+* 明示的な許可なしに、既存の研究コード、実験結果、ドキュメントを削除しない
+* 明示的な指示なしに破壊的な操作を行わない
+* 重要な実装上の判断や予想外の結果があった場合はユーザーに報告する
+* 指示が曖昧で、実験結果に大きな影響を与える可能性がある場合は、重大な仮定を置く前にユーザーへ確認する
+
+## コーディング
+
+* 既存コードの構造、命名規則、記述スタイルを可能な限り尊重する
+* 変数名、関数名、クラス名などの識別子は、既存コードに合わせて原則として英語を使用する
+* 必要性のない大規模なリファクタリングを行わない
+* 研究結果に影響するアルゴリズム上の変更を行った場合は、その内容を明確に報告する
+
+## 実験
+
+実験によって生成される出力は、原則として以下に保存する。
+
+`output/`
+
+`output/` は意図的にGitの管理対象から除外している。
+
+`output/` 内のファイルをGitに追加しないこと。
+
+実験を実行する前に、可能な範囲で以下を確認する。
+
+* 実験の目的
+* 使用するスクリプトまたはプログラム
+* 重要なパラメータ
+* 入力データや実験条件
+* 既存の実験結果を意図せず上書きしないこと
+
+可能な限り、後から実験を再現できるだけの情報を残すこと。
+
+重要な実験については、必要に応じて以下を記録する。
+
+* 実験の目的
+* 実験日
+* 使用した手法
+* 主要なパラメータ
+* 使用したデータセットまたは入力条件
+* 実行したスクリプトやコマンド
+* 重要な数値結果
+* 観察された現象
+* 結果の解釈
+* エラーや予想外の挙動
+* 次に行うべき作業
+
+## PROGRESS.md
+
+研究作業を開始する前に `PROGRESS.md` を読むこと。
+
+意味のある研究作業や実験を完了した場合は、必要に応じて `PROGRESS.md` を更新すること。
+
+`PROGRESS.md` は、ユーザーや別のCodexセッションが短時間で以下を把握できる状態に保つ。
+
+* 現在の研究目的
+* 直近で何を行ったか
+* 最新の重要な実験結果
+* 現時点で分かっていること
+* 未解決の問題
+* 次に行うべき作業
+
+`PROGRESS.md` をすべての実験ログを保存する場所にはしない。
+
+大量のログや生成物はGitに追加せず、原則として `output/` に保存する。
+
+## Gitブランチ
+
+ブランチは以下の方針で使用する。
+
+### `main`
+
+`main` は安定版のブランチとして扱う。
+
+* Codexによる通常の研究作業を `main` 上で直接行わない
+* `main` に直接pushしない
+* Codexの判断だけで `main` に変更をmergeしない
+* 原則として、ユーザーが内容を確認した変更のみ `main` に取り込む
+
+### `codex-work`
+
+`codex-work` はCodexを利用した研究作業の通常の作業ブランチとする。
+
+明示的な指示がない限り、
+
+* 研究上の変更は `codex-work` で行う
+* Codexによる作業は `codex-work` にcommitする
+* pushする場合は `codex-work` のみにpushする
+
+## Commitのルール
+
+ユーザーが明示的にcommitを依頼した場合、または依頼された作業にcommitが明確に含まれている場合を除き、勝手にcommitしないこと。
+
+commitする前に、必ず以下を確認する。
+
+1. 現在のブランチ
+2. `git status`
+3. 変更されたファイル
+4. 意図しないファイルが含まれていないこと
+5. 大容量の生成ファイルが含まれていないこと
+6. 秘密情報や認証情報が含まれていないこと
+
+commitメッセージは、その変更の目的が簡潔に分かる内容にする。
+
+実際の変更内容と一致しないcommitメッセージを使用しない。
+
+## Pushのルール
+
+ユーザーから明示的にpushするよう指示されない限り、GitHubへpushしないこと。
+
+pushを指示された場合は、以下を確認する。
+
+1. 現在のブランチが `codex-work` であること
+2. commitに意図した変更のみが含まれていること
+3. `origin/codex-work` にpushすること
+4. pushが成功したかどうかをユーザーに報告すること
+
+`main` に直接pushしない。
+
+force pushを行わない。
+
+ユーザーから明示的な指示があり、その影響を十分確認した場合を除き、公開済みのGit履歴を書き換えない。
+
+## 実験からPushまでを依頼された場合
+
+ユーザーから、例えば
+
+「この実験を実行し、結果を記録して、commitしてpushしてください」
+
+という指示を受けた場合は、原則として以下の順番で作業する。
+
+1. `PROGRESS.md` を読む
+2. 現在のブランチが `codex-work` であることを確認する
+3. `git status` を確認する
+4. 指示された実装または実験を行う
+5. 実験結果を確認する
+6. 重要な結果を `PROGRESS.md` に記録する
+7. 変更されたすべてのファイルを確認する
+8. `output/` の生成物など、Git管理すべきでないファイルがstageされていないことを確認する
+9. 意図したファイルのみcommitする
+10. `origin/codex-work` のみにpushする
+11. 最後に以下をユーザーへ報告する
+
+* 何を変更したか
+* どの実験を行ったか
+* 重要な結果
+* 作成したcommit
+* pushが成功したか
+* 次に行うべき作業
+
+実験が失敗した場合、成功したように扱わないこと。
+
+失敗から得られる情報がある場合は、必要に応じて記録する。
+
+実験失敗後に不確実または危険なコード変更が残っている場合、明示的な指示がない限り、その変更をcommitまたはpushしない。
+
+## Gitに追加してはいけないもの
+
+以下はGitにcommitしない。
+
+* `output/` 以下のファイル
+* パスワード
+* APIキー
+* 認証トークン
+* その他の秘密情報や認証情報
+* 意図せず生成された大容量ファイル
+* 一時ファイル
+* Gitで共有する必要のないPC固有の設定ファイル
+
+`.gitignore` の設定を尊重すること。
+
+明示的な指示がない限り、`git add -f` などを使用して `.gitignore` を無視しないこと。
+
+## データセットの保護
+
+明示的な指示なしに、データセットのファイルを変更、移動、名前変更、削除しないこと。
+
+データセットは研究上の入力データとして扱う。
+
+実験のためにデータを変換する必要がある場合は、可能な限り元データを上書きせず、新しい派生データを生成する。
+
+## スマートフォンからのリモート操作
+
+ユーザーはスマートフォンからCodexをリモート操作する場合がある。
+
+リモートから受けた指示も、研究PC上で直接受けた指示と同様に扱うこと。
+
+ユーザーが研究PCの前にいない可能性があるため、以下を特に守る。
+
+* 破壊的な操作を避ける
+* エラーや失敗を明確に報告する
+* ユーザーによる操作が必要になった場合は明確に伝える
+* エラーを回避するためだけに不可逆な変更を行わない
+* 利便性のためにGitやリポジトリの安全ルールを緩和しない
+
+## 安全上のルール
+
+以下を行わないこと。
+
+* force push
+* Git履歴の無断書き換え
+* 明示的な許可なしのブランチ削除
+* データセットの無断削除
+* 重要な実験結果の無断上書き
+* 秘密情報の公開
+* 意図しないファイルのpush
+* 明示的な許可なしに `.gitignore` を回避すること
+
+破壊的または元に戻すことが難しい操作について判断に迷う場合は、作業を止めてユーザーに確認すること。
